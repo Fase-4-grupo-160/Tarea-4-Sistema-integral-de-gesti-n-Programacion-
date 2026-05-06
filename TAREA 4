@@ -155,8 +155,6 @@ class Reserva:
             self.imprimir(f"Estado final de la operación: {self.estado}\n")
 
 # --- 7. Interfaz Tkinter y Simulación ---
-import tkinter as tk
-from tkinter import ttk, scrolledtext
 
 # --- MENSAJES VISUALES ---
 def mostrar_mensaje(tipo, texto):
