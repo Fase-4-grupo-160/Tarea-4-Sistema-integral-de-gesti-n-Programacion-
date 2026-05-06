@@ -1,0 +1,10 @@
+2026-05-01 09:58:08,472 - ERROR - Intento de crear cliente con nombre inválido: A
+2026-05-01 09:58:08,473 - ERROR - Validación Cliente: El nombre del cliente no es válido.
+2026-05-01 09:58:08,476 - ERROR - Error en reserva: Servicio Reserva de Sala no disponible.
+2026-05-01 09:58:08,477 - ERROR - Error de parámetros: can't multiply sequence by non-int of type 'float'
+2026-05-01 09:58:08,482 - ERROR - Error en reserva: Servicio Reserva de Sala no disponible.
+2026-05-01 11:02:02,949 - ERROR - Intento de crear cliente con nombre inválido: A
+2026-05-01 11:02:02,950 - ERROR - Validación Cliente: El nombre del cliente no es válido.
+2026-05-01 11:02:02,953 - ERROR - Error en reserva: Servicio Reserva de Sala no disponible.
+2026-05-01 11:02:02,954 - ERROR - Error de parámetros: can't multiply sequence by non-int of type 'float'
+2026-05-01 11:02:02,959 - ERROR - Error en reserva: Servicio Reserva de Sala no disponible.

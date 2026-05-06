@@ -1,3 +1,19 @@
+''' El trabajo debe basarse en una arquitectura orientada a objetos, incluyendo al menos:
+• Una clase abstracta que represente entidades generales del sistema.
+• Una clase Cliente con validaciones robustas y encapsulación de datos personales.
+• Una clase abstracta Servicio y al menos tres servicios especializados que hereden de ella, implementando polimorfismo y
+métodos sobrescritos para calcular costos, describir servicios y
+ alidar parámetros.
+• Una clase Reserva que integre cliente, servicio, duración y estado, e implemente confirmación, cancelación y procesamiento con
+manejo de excepciones.
+• Métodos sobrecargados (por ejemplo, diferentes variantes del cálculo de costos con impuestos, descuentos o parámetros
+opcionales).
+•Un archivo de logs donde se registren todos los errores y eventos relevantes.
+•El sistema, sin utilizar ningún motor de base de datos, debe simular al menos 10 operaciones completas, incluyendo registros válidos e
+inválidos de clientes, creación correcta e incorrecta de servicios, y reservas exitosas y fallidas, demostrando la capacidad del programa
+para continuar funcionando ante errores graves y manejar excepciones de manera controlada y profesional.
+'''
+
 import abc
 import datetime
 import logging
@@ -61,7 +77,11 @@ class Servicio(EntidadSistema):
     @abc.abstractmethod
     def describir_servicio(self):
         pass
-
+ 
+    @abc.abstractmethod #segundo commit
+    def validar_parametros(self):
+        pass
+        
 # --- 5. Clases Derivadas de Servicio ---
 class ReservaSala(Servicio):
     def __init__(self, id_entidad, tarifa_base, capacidad):
@@ -71,12 +91,17 @@ class ReservaSala(Servicio):
     def mostrar_info(self):
         return f"Servicio[{self._id_entidad}]: {self.nombre_servicio} para {self.capacidad} personas"
 
+    def validar_parametros(self): #segundo commit
+        if self.capacidad<=0:
+            raise InvalidDataError("la capacidad de la sala debe ser mayor a 0.")
+        print(f"parametros {self.id_entidad} validados correctamente.")
+        
     def calcular_costo(self, horas=1):
         return (self.tarifa_base * horas) + (self.capacidad * 0.1)
 
     def describir_servicio(self):
         return f"{self.nombre_servicio} (Capacidad: {self.capacidad})"
-
+        
 class AlquilerEquipo(Servicio):
     def __init__(self, id_entidad, tarifa_base, tipo_equipo):
         super().__init__(id_entidad, tarifa_base, "Alquiler de Equipo")
@@ -84,7 +109,12 @@ class AlquilerEquipo(Servicio):
 
     def mostrar_info(self):
         return f"Servicio[{self._id_entidad}]: {self.nombre_servicio} - {self.tipo_equipo}"
-
+    
+    def validar_parametros(self): #segundo commit
+        if not self.tipo_equipo:
+            raise InvalidDataError("El tipo de equipo es obligatorio.")
+        print(f"parametros de {self.id_entidad} validados correctamente.")
+            
     def calcular_costo(self, dias=1, seguro=False):
         costo = self.tarifa_base * dias
         if seguro: costo += 50
@@ -100,7 +130,13 @@ class Asesoria(Servicio):
 
     def mostrar_info(self):
         return f"Servicio[{self._id_entidad}]: {self.nombre_servicio} Nivel {self.nivel_especialidad}"
-
+    
+    def validar_parametros(self): #segundo commit
+        niveles_validos=["Junior", "Senior", "Expert"]
+        if self.nivel_especialidad not in niveles_validos:
+            raise InvalidDataError("f {self.nivel_especialidad} no es valido.")
+        print(f"parametros de {self.id_entidad} validados correctamente.")  
+        
     def calcular_costo(self, horas=1):
         if self.nivel_especialidad == "Senior":
             return (self.tarifa_base * horas) * 0.9
@@ -211,7 +247,7 @@ label.pack(pady=10)
 txt_area = scrolledtext.ScrolledText(root, width=70, height=20)
 txt_area.pack(padx=10, pady=10)
 
-btn_simular = tk.Button(root, text="Ejecutar Simulación", command=lambda: ejecutar_simulacion_gui(txt_area), bg="light blue", fg="black")
+btn_simular = tk.Button(root, text="Ejecutar Simulación", command=lambda: ejecutar_simulacion_gui(txt_area), bg="#AD74C3", fg="#FFF4E2") #segundo commit
 btn_simular.pack(pady=5)
 
 root.mainloop()
