@@ -1,0 +1,265 @@
+import abc
+import datetime
+import logging
+import tkinter as tk
+from tkinter import scrolledtext
+
+# Configuración de Logging para el sistema
+logging.basicConfig(
+    filename='software_fj_errors.log',
+    level=logging.ERROR,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+# --- 1. Excepciones Personalizadas ---
+class BookingError(Exception):
+    pass
+
+class ServiceNotAvailableError(BookingError):
+    pass
+
+class InvalidDataError(BookingError):
+    pass
+
+# --- 2. Clase Abstracta General ---
+class EntidadSistema(abc.ABC):
+    def __init__(self, id_entidad):
+        self._id_entidad = id_entidad
+
+    @abc.abstractmethod
+    def mostrar_info(self):
+        pass
+
+# --- 3. Clase Cliente ---
+class Cliente(EntidadSistema):
+    def __init__(self, id_entidad, nombre, email):
+        super().__init__(id_entidad)
+        self.set_nombre(nombre)
+        self.email = email
+
+        if "@" not in email or "." not in email:
+            logging.error(f"Email inválido: {email}")
+            raise InvalidDataError("El email no es válido.")
+        
+        self.email = email
+         
+             
+
+    def set_nombre(self, nombre):
+        if not nombre or len(nombre) < 2:
+            logging.error(f"Intento de crear cliente con nombre inválido: {nombre}")
+            raise InvalidDataError("El nombre del cliente no es válido.")
+        
+        if any(char.isdigit() for char in nombre):
+             logging.error(f"Nombre con números: {nombre}")
+             raise InvalidDataError("El nombre no debe contener números.")
+              
+           
+        self.__nombre = nombre
+
+    def mostrar_info(self):
+        return f"Cliente[{self._id_entidad}]: {self.__nombre} - {self.email}"
+
+# --- 4. Clase Abstracta Servicio ---
+class Servicio(EntidadSistema):
+    def __init__(self, id_entidad, tarifa_base, nombre_servicio):
+        super().__init__(id_entidad)
+        self.tarifa_base = tarifa_base
+        self.nombre_servicio = nombre_servicio
+        self.disponible = True
+
+    @abc.abstractmethod
+    def calcular_costo(self):
+        pass
+
+    @abc.abstractmethod
+    def describir_servicio(self):
+        pass
+
+# --- 5. Clases Derivadas de Servicio ---
+class ReservaSala(Servicio):
+    def __init__(self, id_entidad, tarifa_base, capacidad):
+        super().__init__(id_entidad, tarifa_base, "Reserva de Sala")
+        self.capacidad = capacidad
+
+    def mostrar_info(self):
+        return f"Servicio[{self._id_entidad}]: {self.nombre_servicio} para {self.capacidad} personas"
+
+    def calcular_costo(self, horas=1):
+        return (self.tarifa_base * horas) + (self.capacidad * 0.1)
+
+    def describir_servicio(self):
+        return f"{self.nombre_servicio} (Capacidad: {self.capacidad})"
+
+class AlquilerEquipo(Servicio):
+    def __init__(self, id_entidad, tarifa_base, tipo_equipo):
+        super().__init__(id_entidad, tarifa_base, "Alquiler de Equipo")
+        self.tipo_equipo = tipo_equipo
+
+    def mostrar_info(self):
+        return f"Servicio[{self._id_entidad}]: {self.nombre_servicio} - {self.tipo_equipo}"
+
+    def calcular_costo(self, dias=1, seguro=False):
+        costo = self.tarifa_base * dias
+        if seguro: costo += 50
+        return costo
+
+    def describir_servicio(self):
+        return f"{self.nombre_servicio} - {self.tipo_equipo}"
+
+class Asesoria(Servicio):
+    def __init__(self, id_entidad, tarifa_base, nivel_especialidad):
+        super().__init__(id_entidad, tarifa_base, "Asesoría Especializada")
+        self.nivel_especialidad = nivel_especialidad
+
+    def mostrar_info(self):
+        return f"Servicio[{self._id_entidad}]: {self.nombre_servicio} Nivel {self.nivel_especialidad}"
+
+    def calcular_costo(self, horas=1):
+        if self.nivel_especialidad == "Senior":
+            return (self.tarifa_base * horas) * 0.9
+        return self.tarifa_base * horas
+
+    def describir_servicio(self):
+        return f"{self.nombre_servicio} ({self.nivel_especialidad})"
+
+# --- 6. Clase Reserva ---
+class Reserva:
+    def __init__(self, cliente, servicio, fecha, output_widget):
+        self.cliente = cliente
+        self.servicio = servicio
+        self.fecha = fecha
+        self.estado = "Confirmada"
+        self.out = output_widget # Referencia al widget de Tkinter
+
+    def imprimir(self, texto):
+        self.out.insert(tk.END, texto + "\n")
+        self.out.see(tk.END)
+
+    def procesar_reserva(self):
+        try:
+            if not self.servicio.disponible:
+                raise ServiceNotAvailableError(f"Servicio {self.servicio.nombre_servicio} no disponible.")
+            
+            costo = self.servicio.calcular_costo()
+            self.imprimir(f"Reserva exitosa: {self.cliente.mostrar_info()} -> "
+                          f"{self.servicio.describir_servicio()}. Costo: ${costo:.2f}")
+
+        except ServiceNotAvailableError as e:
+            self.estado = "Fallida"
+            logging.error(f"Error en reserva: {e}")
+            self.imprimir(f"Error controlado: {e}")
+        except Exception as e:
+            logging.critical(f"Error inesperado: {e}", exc_info=True)
+        finally:
+            self.imprimir(f"Estado final de la operación: {self.estado}\n")
+
+# --- 7. Interfaz Tkinter y Simulación ---
+import tkinter as tk
+from tkinter import ttk, scrolledtext
+
+# --- MENSAJES VISUALES ---
+def mostrar_mensaje(tipo, texto):
+    if tipo == "ok":
+        txt_logs.insert(tk.END, "✔ ", "ok")
+        txt_logs.insert(tk.END, texto + "\n\n", "ok")
+
+    elif tipo == "error":
+        txt_logs.insert(tk.END, "✖ ", "error")
+        txt_logs.insert(tk.END, texto + "\n\n", "error")
+
+    txt_logs.see(tk.END)
+
+
+# --- FUNCIÓN PRINCIPAL ---
+def crear_reserva_gui():
+    try:
+        nombre = entry_nombre.get()
+        email = entry_email.get()
+        tipo_servicio = combo_servicio.get()
+        fecha = entry_fecha.get()
+
+        cliente = Cliente("C_GUI", nombre, email)
+
+        if tipo_servicio == "Reserva Sala":
+            servicio = ReservaSala("S_GUI", 100, 20)
+
+        elif tipo_servicio == "Alquiler Equipo":
+            servicio = AlquilerEquipo("S_GUI", 50, "Proyector")
+
+        else:
+            servicio = Asesoria("S_GUI", 200, "Senior")
+
+        costo = servicio.calcular_costo()
+
+        mostrar_mensaje("ok",
+            f"Reserva Confirmada\n"
+            f"Cliente: {nombre}\n"
+            f"Servicio: {servicio.describir_servicio()}\n"
+            f"Fecha: {fecha}\n"
+            f"Costo: ${costo:.2f}"
+        )
+
+    except Exception as e:
+        mostrar_mensaje("error", f"{e}")
+
+
+# --- VENTANA ---
+root = tk.Tk()
+root.title("Sistema integral GCSR_FJ")
+root.geometry("600x500")
+root.config(bg="white")
+
+
+# --- TÍTULO ---
+tk.Label(root, text=" Logs de Operaciones",
+         font=("Arial", 16, "bold"),
+         bg="white").pack(pady=10)
+
+
+# --- FORMULARIO ---
+frame = tk.Frame(root, bg="white")
+frame.pack(pady=10)
+
+tk.Label(frame, text="Nombre:", bg="white").grid(row=0, column=0, pady=5)
+entry_nombre = tk.Entry(frame)
+entry_nombre.grid(row=0, column=1)
+
+tk.Label(frame, text="Email:", bg="white").grid(row=1, column=0, pady=5)
+entry_email = tk.Entry(frame)
+entry_email.grid(row=1, column=1)
+
+tk.Label(frame, text="Servicio:", bg="white").grid(row=2, column=0, pady=5)
+combo_servicio = ttk.Combobox(frame,
+    values=["Reserva Sala", "Alquiler Equipo", "Asesoría"])
+combo_servicio.grid(row=2, column=1)
+combo_servicio.current(0)
+
+tk.Label(frame, text="Fecha:", bg="white").grid(row=3, column=0, pady=5)
+entry_fecha = tk.Entry(frame)
+entry_fecha.insert(0, "2026-05-01")
+entry_fecha.grid(row=3, column=1)
+
+
+# --- BOTÓN ---
+tk.Button(root,
+          text="Crear Reserva",
+          command=crear_reserva_gui,
+          bg="#4CAF50",
+          fg="white").pack(pady=10)
+
+
+# --- RESULTADOS ---
+tk.Label(root, text="Resultados",
+         font=("Arial", 12, "bold"),
+         bg="white").pack()
+
+txt_logs = scrolledtext.ScrolledText(root, width=70, height=12)
+txt_logs.pack(padx=10, pady=10)
+
+
+# --- COLORES ---
+txt_logs.tag_config("ok", foreground="green")
+txt_logs.tag_config("error", foreground="red")
+
+root.mainloop()
