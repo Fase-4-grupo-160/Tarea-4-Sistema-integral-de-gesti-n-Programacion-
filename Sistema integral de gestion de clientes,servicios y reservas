@@ -168,7 +168,7 @@ class Reserva:
                           f"{self.servicio.describir_servicio()}. Costo: ${costo:.2f}")
 
         except ServiceNotAvailableError as e:
-            self.estado = "Fallida"
+           self.estado = "Fallida"
             logging.error(f"Error en reserva: {e}")
             self.imprimir(f"Error controlado: {e}")
         except Exception as e:
@@ -176,78 +176,3 @@ class Reserva:
         finally:
             self.imprimir(f"Estado final de la operación: {self.estado}\n")
 
-# --- 7. Interfaz Tkinter y Simulación ---
-def ejecutar_simulacion_gui(txt_area):
-    txt_area.insert(tk.END, "--- Iniciando Software FJ ---\n\n")
-    
-    # 1. Registro válido
-    c1 = Cliente("C01", "Ana Gomez", "ana@mail.com")
-    s1 = ReservaSala("S01", 100, 20)
-    res1 = Reserva(c1, s1, "2026-05-01", txt_area)
-    res1.procesar_reserva()
-
-    # 2. Registro inválido
-    try:
-        c2 = Cliente("C02", "A", "invalido@mail.com")
-    except InvalidDataError as e:
-        logging.error(f"Validación Cliente: {e}")
-        txt_area.insert(tk.END, f"Validación Cliente: {e}\n\n")
-
-    # 3. Servicio de alquiler exitoso
-    c3 = Cliente("C03", "Luis Perez", "luis@mail.com")
-    s2 = AlquilerEquipo("S02", 50, "Proyector")
-    res2 = Reserva(c3, s2, "2026-05-02", txt_area)
-    res2.procesar_reserva()
-
-    # 4. Asesoría con descuento
-    c4 = Cliente("C04", "Maria Ruiz", "maria@mail.com")
-    s3 = Asesoria("S03", 200, "Senior")
-    res3 = Reserva(c4, s3, "2026-05-03", txt_area)
-    res3.procesar_reserva()
-
-    # 5. Servicio no disponible
-    s4 = ReservaSala("S04", 150, 50)
-    s4.disponible = False
-    res4 = Reserva(c1, s4, "2026-05-04", txt_area)
-    res4.procesar_reserva()
-
-    # 6. Sobrecarga de método
-    costo_equipo = s2.calcular_costo(dias=3, seguro=True)
-    txt_area.insert(tk.END, f"Cálculo sobrecargado (Alquiler 3 días + Seguro): ${costo_equipo:.2f}\n\n")
-
-    # 7. Error de parámetros
-    try:
-        s3.calcular_costo(horas="muchas")
-    except TypeError as e:
-        logging.error(f"Error de parámetros: {e}")
-        txt_area.insert(tk.END, f"Error de parámetros: {e}\n\n")
-
-    # 8. Múltiples reservas
-    res5 = Reserva(c3, s3, "2026-05-05", txt_area)
-    res5.procesar_reserva()
-
-    # 9. Cambio de estado de servicio
-    s1.disponible = False
-    res6 = Reserva(c4, s1, "2026-05-06", txt_area)
-    res6.procesar_reserva()
-
-    # 10. Reserva Válida final
-    c5 = Cliente("C05", "Carlos Diaz", "carlos@mail.com")
-    res7 = Reserva(c5, s2, "2026-05-07", txt_area)
-    res7.procesar_reserva()
-
-# Ventana Principal
-root = tk.Tk()
-root.title("Sistema integral GCSR_FJ")
-root.geometry("500x500")
-
-label = tk.Label(root, text="Logs de Operaciones", font=("Time new roman", 12, "bold"))
-label.pack(pady=10)
-
-txt_area = scrolledtext.ScrolledText(root, width=70, height=20)
-txt_area.pack(padx=10, pady=10)
-
-btn_simular = tk.Button(root, text="Ejecutar Simulación", command=lambda: ejecutar_simulacion_gui(txt_area), bg="#AD74C3", fg="#FFF4E2") #segundo commit
-btn_simular.pack(pady=5)
-
-root.mainloop()
