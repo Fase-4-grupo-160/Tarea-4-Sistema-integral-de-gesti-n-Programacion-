@@ -53,10 +53,24 @@ class Cliente(EntidadSistema):
         self.set_nombre(nombre)
         self.email = email
 
+        if "@" not in email or "." not in email:
+            logging.error(f"Email inválido: {email}")
+            raise InvalidDataError("El email no es válido.")
+        
+        self.email = email
+         
+             
+
     def set_nombre(self, nombre):
         if not nombre or len(nombre) < 2:
             logging.error(f"Intento de crear cliente con nombre inválido: {nombre}")
             raise InvalidDataError("El nombre del cliente no es válido.")
+        
+        if any(char.isdigit() for char in nombre):
+             logging.error(f"Nombre con números: {nombre}")
+             raise InvalidDataError("El nombre no debe contener números.")
+              
+           
         self.__nombre = nombre
 
     def mostrar_info(self):
@@ -77,11 +91,7 @@ class Servicio(EntidadSistema):
     @abc.abstractmethod
     def describir_servicio(self):
         pass
- 
-    @abc.abstractmethod #segundo commit
-    def validar_parametros(self):
-        pass
-        
+
 # --- 5. Clases Derivadas de Servicio ---
 class ReservaSala(Servicio):
     def __init__(self, id_entidad, tarifa_base, capacidad):
@@ -91,17 +101,12 @@ class ReservaSala(Servicio):
     def mostrar_info(self):
         return f"Servicio[{self._id_entidad}]: {self.nombre_servicio} para {self.capacidad} personas"
 
-    def validar_parametros(self): #segundo commit
-        if self.capacidad<=0:
-            raise InvalidDataError("la capacidad de la sala debe ser mayor a 0.")
-        print(f"parametros {self.id_entidad} validados correctamente.")
-        
     def calcular_costo(self, horas=1):
         return (self.tarifa_base * horas) + (self.capacidad * 0.1)
 
     def describir_servicio(self):
         return f"{self.nombre_servicio} (Capacidad: {self.capacidad})"
-        
+
 class AlquilerEquipo(Servicio):
     def __init__(self, id_entidad, tarifa_base, tipo_equipo):
         super().__init__(id_entidad, tarifa_base, "Alquiler de Equipo")
@@ -109,12 +114,7 @@ class AlquilerEquipo(Servicio):
 
     def mostrar_info(self):
         return f"Servicio[{self._id_entidad}]: {self.nombre_servicio} - {self.tipo_equipo}"
-    
-    def validar_parametros(self): #segundo commit
-        if not self.tipo_equipo:
-            raise InvalidDataError("El tipo de equipo es obligatorio.")
-        print(f"parametros de {self.id_entidad} validados correctamente.")
-            
+
     def calcular_costo(self, dias=1, seguro=False):
         costo = self.tarifa_base * dias
         if seguro: costo += 50
@@ -130,13 +130,7 @@ class Asesoria(Servicio):
 
     def mostrar_info(self):
         return f"Servicio[{self._id_entidad}]: {self.nombre_servicio} Nivel {self.nivel_especialidad}"
-    
-    def validar_parametros(self): #segundo commit
-        niveles_validos=["Junior", "Senior", "Expert"]
-        if self.nivel_especialidad not in niveles_validos:
-            raise InvalidDataError("f {self.nivel_especialidad} no es valido.")
-        print(f"parametros de {self.id_entidad} validados correctamente.")  
-        
+
     def calcular_costo(self, horas=1):
         if self.nivel_especialidad == "Senior":
             return (self.tarifa_base * horas) * 0.9
@@ -177,77 +171,103 @@ class Reserva:
             self.imprimir(f"Estado final de la operación: {self.estado}\n")
 
 # --- 7. Interfaz Tkinter y Simulación ---
-def ejecutar_simulacion_gui(txt_area):
-    txt_area.insert(tk.END, "--- Iniciando Software FJ ---\n\n")
-    
-    # 1. Registro válido
-    c1 = Cliente("C01", "Ana Gomez", "ana@mail.com")
-    s1 = ReservaSala("S01", 100, 20)
-    res1 = Reserva(c1, s1, "2026-05-01", txt_area)
-    res1.procesar_reserva()
 
-    # 2. Registro inválido
+# --- MENSAJES VISUALES ---
+def mostrar_mensaje(tipo, texto):
+    if tipo == "ok":
+        txt_logs.insert(tk.END, "✔ ", "ok")
+        txt_logs.insert(tk.END, texto + "\n\n", "ok")
+
+    elif tipo == "error":
+        txt_logs.insert(tk.END, "✖ ", "error")
+        txt_logs.insert(tk.END, texto + "\n\n", "error")
+
+    txt_logs.see(tk.END)
+
+# --- FUNCIÓN PRINCIPAL ---
+def crear_reserva_gui():
     try:
-        c2 = Cliente("C02", "A", "invalido@mail.com")
-    except InvalidDataError as e:
-        logging.error(f"Validación Cliente: {e}")
-        txt_area.insert(tk.END, f"Validación Cliente: {e}\n\n")
+        nombre = entry_nombre.get()
+        email = entry_email.get()
+        tipo_servicio = combo_servicio.get()
+        fecha = entry_fecha.get()
 
-    # 3. Servicio de alquiler exitoso
-    c3 = Cliente("C03", "Luis Perez", "luis@mail.com")
-    s2 = AlquilerEquipo("S02", 50, "Proyector")
-    res2 = Reserva(c3, s2, "2026-05-02", txt_area)
-    res2.procesar_reserva()
+        cliente = Cliente("C_GUI", nombre, email)
 
-    # 4. Asesoría con descuento
-    c4 = Cliente("C04", "Maria Ruiz", "maria@mail.com")
-    s3 = Asesoria("S03", 200, "Senior")
-    res3 = Reserva(c4, s3, "2026-05-03", txt_area)
-    res3.procesar_reserva()
+        if tipo_servicio == "Reserva Sala":
+            servicio = ReservaSala("S_GUI", 100, 20)
 
-    # 5. Servicio no disponible
-    s4 = ReservaSala("S04", 150, 50)
-    s4.disponible = False
-    res4 = Reserva(c1, s4, "2026-05-04", txt_area)
-    res4.procesar_reserva()
+        elif tipo_servicio == "Alquiler Equipo":
+            servicio = AlquilerEquipo("S_GUI", 50, "Proyector")
 
-    # 6. Sobrecarga de método
-    costo_equipo = s2.calcular_costo(dias=3, seguro=True)
-    txt_area.insert(tk.END, f"Cálculo sobrecargado (Alquiler 3 días + Seguro): ${costo_equipo:.2f}\n\n")
+        else:
+            servicio = Asesoria("S_GUI", 200, "Senior")
 
-    # 7. Error de parámetros
-    try:
-        s3.calcular_costo(horas="muchas")
-    except TypeError as e:
-        logging.error(f"Error de parámetros: {e}")
-        txt_area.insert(tk.END, f"Error de parámetros: {e}\n\n")
+        costo = servicio.calcular_costo()
 
-    # 8. Múltiples reservas
-    res5 = Reserva(c3, s3, "2026-05-05", txt_area)
-    res5.procesar_reserva()
+        mostrar_mensaje("ok",
+            f"Reserva Confirmada\n"
+            f"Cliente: {nombre}\n"
+            f"Servicio: {servicio.describir_servicio()}\n"
+            f"Fecha: {fecha}\n"
+            f"Costo: ${costo:.2f}"
+        )
 
-    # 9. Cambio de estado de servicio
-    s1.disponible = False
-    res6 = Reserva(c4, s1, "2026-05-06", txt_area)
-    res6.procesar_reserva()
+    except Exception as e:
+        mostrar_mensaje("error", f"{e}")
 
-    # 10. Reserva Válida final
-    c5 = Cliente("C05", "Carlos Diaz", "carlos@mail.com")
-    res7 = Reserva(c5, s2, "2026-05-07", txt_area)
-    res7.procesar_reserva()
-
-# Ventana Principal
+# --- VENTANA ---
 root = tk.Tk()
 root.title("Sistema integral GCSR_FJ")
-root.geometry("500x500")
+root.geometry("600x500")
+root.config(bg="white")
 
-label = tk.Label(root, text="Logs de Operaciones", font=("Time new roman", 12, "bold"))
-label.pack(pady=10)
 
-txt_area = scrolledtext.ScrolledText(root, width=70, height=20)
-txt_area.pack(padx=10, pady=10)
+# --- TÍTULO ---
+tk.Label(root, text=" Logs de Operaciones",
+         font=("Arial", 16, "bold"),
+         bg="white").pack(pady=10)
 
-btn_simular = tk.Button(root, text="Ejecutar Simulación", command=lambda: ejecutar_simulacion_gui(txt_area), bg="#AD74C3", fg="#FFF4E2") #segundo commit
-btn_simular.pack(pady=5)
+# --- FORMULARIO ---
+frame = tk.Frame(root, bg="white")
+frame.pack(pady=10)
+
+tk.Label(frame, text="Nombre:", bg="white").grid(row=0, column=0, pady=5)
+entry_nombre = tk.Entry(frame)
+entry_nombre.grid(row=0, column=1)
+
+tk.Label(frame, text="Email:", bg="white").grid(row=1, column=0, pady=5)
+entry_email = tk.Entry(frame)
+entry_email.grid(row=1, column=1)
+
+tk.Label(frame, text="Servicio:", bg="white").grid(row=2, column=0, pady=5)
+combo_servicio = ttk.Combobox(frame,
+    values=["Reserva Sala", "Alquiler Equipo", "Asesoría"])
+combo_servicio.grid(row=2, column=1)
+combo_servicio.current(0)
+
+tk.Label(frame, text="Fecha:", bg="white").grid(row=3, column=0, pady=5)
+entry_fecha = tk.Entry(frame)
+entry_fecha.insert(0, "2026-05-01")
+entry_fecha.grid(row=3, column=1)
+
+# --- BOTÓN ---
+tk.Button(root,
+          text="Crear Reserva",
+          command=crear_reserva_gui,
+          bg="#4CAF50",
+          fg="white").pack(pady=10)
+
+# --- RESULTADOS ---
+tk.Label(root, text="Resultados",
+         font=("Arial", 12, "bold"),
+         bg="white").pack()
+
+txt_logs = scrolledtext.ScrolledText(root, width=70, height=12)
+txt_logs.pack(padx=10, pady=10)
+
+# --- COLORES ---
+txt_logs.tag_config("ok", foreground="green")
+txt_logs.tag_config("error", foreground="red")
 
 root.mainloop()
