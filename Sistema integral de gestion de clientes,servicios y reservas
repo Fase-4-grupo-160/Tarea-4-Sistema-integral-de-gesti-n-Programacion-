@@ -18,7 +18,7 @@ import abc
 import datetime
 import logging
 import tkinter as tk
-from tkinter import scrolledtext
+from tkinter import scrolledtext,ttk
 
 # Configuración de Logging para el sistema
 logging.basicConfig(
